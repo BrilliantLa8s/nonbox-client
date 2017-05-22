@@ -1,4 +1,4 @@
-app.config(function($locationProvider, $stateProvider, $urlRouterProvider){
+nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   $stateProvider
   .state('device', {
     url:'/',
@@ -8,7 +8,7 @@ app.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   .state('networks', {
     url:'/networks',
     templateUrl: 'app/views/networks.html',
-    controller: 'NetworksCtrl'
+    controller: 'WifiCtrl'
   })
   .state('quickstart', {
     url:'/quickstart',

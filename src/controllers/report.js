@@ -1,4 +1,4 @@
-app.controller('ReportsCtrl', function($state, $scope, Report){
+nClient.controller('ReportsCtrl', function($state, $scope, Report){
   $scope.message = {}
 
   $scope.submit = function(body){

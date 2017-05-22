@@ -1,4 +1,4 @@
-app.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
+nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
   $scope.assigned = {total: 10, remaining: 2, devices:[{}]}
   // check if nonbox is connected
   $scope.check = function(){

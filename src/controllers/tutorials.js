@@ -1,4 +1,4 @@
-app.service('Tutorials', function(){
+nClient.service('Tutorials', function(){
   return [
     {
       title: 'Test Tutorial One',

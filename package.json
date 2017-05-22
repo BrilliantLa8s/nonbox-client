@@ -1,45 +1,37 @@
 {
-  "name": "nonbox",
-  "productName": "nonbox",
+  "name": "nonbox-client",
   "version": "1.0.0",
-  "description": "Companion app for nonbox https://nonbox.co",
+  "description": "Shared functions for nonbox client apps",
+  "main": "index.js",
   "license": "MIT",
-  "repository": "nonbox/nonbox-client",
-  "author": {
-    "name": "Ricky Brown",
-    "email": "ricky@brilliantlabs.co",
-    "url": "https://nonbox.co"
-  },
-  "scripts": {
-    "test": "xo",
-    "start": "electron .",
-    "build": "electron-packager . --out=dist --asar --overwrite --all"
-  },
-  "keywords": [
-    "electron-app",
-    "electron"
-  ],
   "dependencies": {
     "angular": "^1.6.3",
-    "angular-electron": "^0.2.1",
-    "angular-ui-router": "^0.4.2",
-    "body-parser": "^1.17.1",
-    "electron-debug": "^1.0.0",
-    "express": "^4.15.2",
-    "photonkit": "^0.1.2",
-    "wifi-control": "^2.0.0"
+    "angular-ui-router": "^0.4.2"
   },
   "devDependencies": {
-    "devtron": "^1.1.0",
-    "electron-packager": "^8.0.0",
-    "electron": "^1.3.3",
-    "xo": "^0.16.0"
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-insert": "^0.5.0",
+    "gulp-ng-annotate": "^2.0.0",
+    "gulp-strip-comments": "^2.4.5",
+    "gulp-uglify": "^3.0.0",
+    "gulp-util": "^3.0.8"
   },
-  "xo": {
-    "esnext": true,
-    "envs": [
-      "node",
-      "browser"
-    ]
-  }
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nonbox/nonbox-client"
+  },
+  "keywords": [
+    "nonbox-client",
+    "nonbox",
+    "client"
+  ],
+  "author": "Ricky Brown",
+  "bugs": {
+    "url": "https://github.com/nonbox/nonbox-client/issues"
+  },
+  "homepage": "https://nonbox.co"
 }
