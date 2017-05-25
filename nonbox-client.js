@@ -4,25 +4,69 @@ angular.module('nonbox-client', ['ui.router']);
 
 var nClient = angular.module('nonbox-client');
 
+nClient.run(function($rootScope){
+  // assume nonbox isn't connected until known otherwise
+  $rootScope.nbConnected = false;
+
+  // nonbox router and api endpoints
+  $rootScope.nbServer = 'http://192.168.42.1:8080/'
+  $rootScope.nbApi    = 'https://nonbox.co/'
+
+  $rootScope.$on('loading:start', function (){
+    $rootScope.isLoading = true;
+  });
+  $rootScope.$on('loading:finish', function (){
+    $rootScope.isLoading = false;
+  });
+})
+
+nClient.config(function($sceProvider, $httpProvider){
+  // prevent caching on $http responses
+  if (!$httpProvider.defaults.headers.get) {
+    $httpProvider.defaults.headers.get = {
+      'Cache-Control':'no-cache',
+      'Pragma':'no-cache'
+    };
+  };
+  $sceProvider.enabled(false);
+  // Inject auth token into the headers of each request
+  $httpProvider.interceptors.push(function($q, $rootScope) {
+    return {
+      request: function(config) {
+        $rootScope.$broadcast('loading:start');
+        return config || $q.when(config);
+      },
+      response: function (response) {
+        $rootScope.$broadcast('loading:finish');
+        return response || $q.when(response);
+      },
+      responseError: function(response) {
+        $rootScope.$broadcast('loading:finish');
+        return $q.reject(response);
+      }
+    };
+  });
+});
+
 nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   $stateProvider
   .state('device', {
     url:'/',
-    templateUrl: 'app/views/device.html',
+    templateUrl: templateDir+'/device.html',
     controller: 'DeviceCtrl'
   })
   .state('networks', {
     url:'/networks',
-    templateUrl: 'app/views/networks.html',
+    templateUrl: templateDir+'/networks.html',
     controller: 'WifiCtrl'
   })
   .state('quickstart', {
     url:'/quickstart',
-    templateUrl: 'app/views/quickstart.html'
+    templateUrl: templateDir+'/quickstart.html'
   })
   .state('tutorials', {
     url:'/tutorials',
-    templateUrl: 'app/views/tutorials.html',
+    templateUrl: templateDir+'/tutorials.html',
     controller: function($scope, Tutorials){
       $scope.showMode = false;
       $scope.tutorials = Tutorials;
@@ -34,21 +78,21 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   })
   .state('support', {
     url:'/support',
-    templateUrl: 'app/views/support.html'
+    templateUrl: templateDir+'/support.html'
   })
   .state('bugs', {
     url:'/bugs',
-    templateUrl: 'app/views/bugreport.html',
+    templateUrl: templateDir+'/bugreport.html',
     controller: 'ReportsCtrl'
   })
   .state('suggestions', {
     url:'/suggestions',
-    templateUrl: 'app/views/suggestion.html',
+    templateUrl: templateDir+'/suggestion.html',
     controller: 'ReportsCtrl'
   })
   .state('pr', {
     url:'/pr',
-    templateUrl: 'app/views/pr.html'
+    templateUrl: templateDir+'/pr.html'
   });
   // catchall route
   $urlRouterProvider.otherwise('/');
@@ -62,8 +106,10 @@ nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
       $rootScope.nbConnected = status;
     }).catch(function(status){
       $rootScope.nbConnected = status;
+    }).finally(function(){
+      Wifi.status();
+      $scope.$broadcast('scroll.refreshComplete');
     });
-    Wifi.status();
   }
   $scope.check();
 });
@@ -92,6 +138,161 @@ nClient.controller('ReportsCtrl', function($state, $scope, Report){
       }
     });
     $scope.$apply;
+  }
+})
+
+nClient.controller('WifiCtrl', function($injector, $scope, $state, $timeout, Nonbox, Wifi) {
+  $scope.connectSecure = false;
+  $scope.currentAp = {};
+  $scope.networks  = [];
+  $scope.error  = '';
+  $scope.status = '';
+
+  // color strength based on signal
+  $scope.colorStrength = function(value){
+    var strength;
+    if(value > 80){
+      strength = value * .01;
+    } else {
+      strength = (value - 15) * .01;
+    }
+    return 'rgba(253,188,64,'+ strength +')';
+  }
+  $scope.connect = function(ap){
+    $scope.currentAp = ap;
+    if(!ap.security){
+      Wifi.connect(ap).then(function(resp){
+      });
+      $scope.scan();
+    } else {
+      passwordDialog('open');
+    }
+  }
+  $scope.secureConnect = function(ap){
+    passwordDialog('close');
+    Wifi.connect(ap).then(function(resp){
+      delete $scope.currentAp.password;
+      console.log(resp.status)
+      if(resp.status === 500){
+        passwordDialog('open');
+      } else {
+        $scope.scan();
+      }
+    });
+  }
+  $scope.cancelConnect = function(el){
+    passwordDialog('close');
+  }
+  $scope.disconnect = function(){
+    Wifi.disconnect().then(function(resp){
+      $scope.scan();
+    });
+  }
+  // avoid the reset function for now
+  $scope.reset = function(){
+    Wifi.reset().then(function(resp){
+      $scope.scan()
+    });
+  }
+
+  $scope.scan = function(){
+    Wifi.status().then(function(resp){
+      if(resp.success == true){
+        $scope.current = resp;
+      } else {
+        $scope.current = {ssid:false};
+      }
+    });
+    Wifi.scan().then(function(resp){
+      if(resp.data && resp.data.success == true) {
+        $scope.networks = resp.data.networks.filter(function(network){
+          return network.ssid !== 'nonbox';
+        });
+      } else if(resp.data) {
+        $scope.error = resp.data.msg;
+      } else {
+        // $state.go('device');
+      }
+    }).catch(function(err){ $state.go('device');})
+    .finally(function(){
+      $scope.$broadcast('scroll.refreshComplete');
+    });
+  }
+
+  function passwordDialog(action){
+    var popup = document.getElementById('passwordDialog');
+    console.log(popup)
+    if(popup != null){
+      if(action === 'open' ) popup.showModal();
+      if(action === 'close') popup.close();
+      console.log('here')
+    } else {
+      if(action === 'close'){
+        return
+      } else {
+        $injector.get('$ionicPopup').show({
+          template: '<input type="password" ng-model="currentAp.password">',
+          title: 'Connect to '+$scope.currentAp.ssid,
+          scope: $scope,
+          buttons: [
+            { text: 'Cancel' },
+            {
+              text: 'Connect',
+              type: 'button-dark',
+              onTap: function(e) {
+                if (!$scope.currentAp.password) {
+                  e.preventDefault();
+                } else {
+                  $scope.secureConnect($scope.currentAp);
+                }
+              }
+            }
+          ]
+        });
+      }
+    }
+  }
+
+  $scope.$on('$ionicView.enter', function() {
+    $scope.scan();
+  });
+
+  $scope.scan();
+});
+
+nClient.service('Nonbox', function($rootScope, $http){
+  return {
+    check: function(){
+      return $http.get($rootScope.nbServer).then(function(resp){
+        if(resp.status === 200 && resp.data === 'nonbox server'){
+          return true;
+        } else { return false; }
+      }).catch(function(err){
+        return false;
+      });
+    },
+    info: function(){
+      return $http.post($rootScope.nbServer+'info')
+      .then(function(resp){
+        return resp;
+      }).catch(function(err){
+        return err;
+      });
+    }
+  }
+})
+
+
+nClient.service('Report', function($rootScope, $http){
+  return {
+    submit: function(body, path){
+      return $http.post($rootScope.nbApi+'report/'+path, body)
+      .then(function(resp){ return resp;}, function (err) {
+        return err;
+      }).catch(function(err){
+        return err;
+      });
+    }
   }
 })
 
@@ -188,124 +389,12 @@ nClient.service('Tutorials', function(){
   ]
 });
 
-nClient.controller('WifiCtrl', function($scope, $state, Nonbox, Wifi) {
-  $scope.connectSecure = false;
-  $scope.currentAp = {};
-  $scope.networks = [];
-  $scope.error = '';
-  $scope.status = '';
-
-  // color strength based on signal
-  $scope.colorStrength = function(value){
-    var strength;
-    if(value > 80){
-      strength = value * .01;
-    } else {
-      strength = (value - 15) * .01;
-    }
-    return 'rgba(253,188,64,'+ strength +')';
-  }
-  $scope.connect = function(ap){
-    $scope.currentAp = ap;
-    if(!ap.security){
-      Wifi.connect(ap).then(function(resp){
-        $scope.connecting = true;
-      });
-      $state.reload();
-    } else {
-      passwordDialog().showModal();
-    }
-  }
-  $scope.secureConnect = function(ap){
-    Wifi.connect(ap).then(function(resp){
-      passwordDialog().close();
-      $scope.connecting = true;
-      delete $scope.currentAp.password;
-    });
-  }
-  $scope.cancelConnect = function(el){
-    passwordDialog().close();
-  }
-  $scope.disconnect = function(){
-    Wifi.disconnect().then(function(resp){
-      scan();
-    });
-  }
-  $scope.reset = function(){
-    Wifi.reset().then(function(resp){
-      scan();
-    });
-  }
-
-  function passwordDialog(){
-    return document.getElementById('passwordDialog');
-  }
-
-  function scan(){
-    // get current connectivity status
-    Wifi.status().then(function(resp){
-      if(resp.success == true){
-        $scope.current = resp;
-      } else {
-        $scope.current = {ssid:false};
-      }
-    });
-    // scan/return networks except 'non' ssid
-    Wifi.scan().then(function(resp){
-      // console.log(resp)
-      if(resp.data && resp.data.success == true) {
-        $scope.networks = resp.data.networks.filter(function(network){
-          return network.ssid !== 'non';
-        });
-      } else if(resp.data) {
-        $scope.error = resp.data.msg;
-      } else {
-        $state.go('device');
-      }
-    }).catch(function(err){ $state.go('device'); });
-  }
-  scan();
-});
-
-nClient.service('Nonbox', function($rootScope, $http){
-  return {
-    check: function(){
-      return $http.get($rootScope.nbServer).then(function(resp){
-        if(resp.status === 200 && resp.data === 'nonbox server'){
-          return true;
-        } else { return false; }
-      }).catch(function(err){
-        return false;
-      });
-    },
-    info: function(){
-      return $http.post($rootScope.nbServer+'info')
-      .then(function(resp){
-        return resp;
-      }).catch(function(err){
-        return err;
-      });
-    }
-  }
-})
-
-nClient.service('Report', function($rootScope, $http){
-  return {
-    submit: function(body, path){
-      return $http.post($rootScope.nbApi+'report/'+path, body)
-      .then(function(resp){ return resp;}, function (err) {
-        return err;
-      }).catch(function(err){
-        return err;
-      });
-    }
-  }
-})
-
 nClient.service('Wifi', function($rootScope, $http){
   return {
     scan: function(){
-      return $http.get($rootScope.nbServer+'scan').then(function(resp){
+      return $http.get($rootScope.nbServer+'scan',
+        { timeout:5000 }
+      ).then(function(resp){
         return resp;
       }).catch(function(err){
         return err;
@@ -320,7 +409,9 @@ nClient.service('Wifi', function($rootScope, $http){
       });
     },
     status: function(){
-      return $http.get($rootScope.nbServer+'status').then(function(resp){
+      return $http.get($rootScope.nbServer+'status',
+        { timeout:5000 }
+      ).then(function(resp){
         $rootScope.online = resp.data.success;
         return resp.data;
       }).catch(function(err){
@@ -337,7 +428,9 @@ nClient.service('Wifi', function($rootScope, $http){
       });
     },
     reset: function(){
-      return $http.delete($rootScope.nbServer+'reset').then(function(resp){
+      return $http.delete($rootScope.nbServer+'reset',
+        { timeout:7000 }
+      ).then(function(resp){
         $rootScope.online = resp.data.success;
         return resp.data;
       }).catch(function(err){

@@ -1,8 +1,8 @@
-nClient.controller('WifiCtrl', function($scope, $state, Nonbox, Wifi) {
+nClient.controller('WifiCtrl', function($injector, $scope, $state, $timeout, Nonbox, Wifi) {
   $scope.connectSecure = false;
   $scope.currentAp = {};
-  $scope.networks = [];
-  $scope.error = '';
+  $scope.networks  = [];
+  $scope.error  = '';
   $scope.status = '';
 
   // color strength based on signal
@@ -19,40 +19,40 @@ nClient.controller('WifiCtrl', function($scope, $state, Nonbox, Wifi) {
     $scope.currentAp = ap;
     if(!ap.security){
       Wifi.connect(ap).then(function(resp){
-        $scope.connecting = true;
       });
-      $state.reload();
+      $scope.scan();
     } else {
-      passwordDialog().showModal();
+      passwordDialog('open');
     }
   }
   $scope.secureConnect = function(ap){
+    passwordDialog('close');
     Wifi.connect(ap).then(function(resp){
-      passwordDialog().close();
-      $scope.connecting = true;
       delete $scope.currentAp.password;
+      console.log(resp.status)
+      if(resp.status === 500){
+        passwordDialog('open');
+      } else {
+        $scope.scan();
+      }
     });
   }
   $scope.cancelConnect = function(el){
-    passwordDialog().close();
+    passwordDialog('close');
   }
   $scope.disconnect = function(){
     Wifi.disconnect().then(function(resp){
-      scan();
+      $scope.scan();
     });
   }
+  // avoid the reset function for now
   $scope.reset = function(){
     Wifi.reset().then(function(resp){
-      scan();
+      $scope.scan()
     });
   }
 
-  function passwordDialog(){
-    return document.getElementById('passwordDialog');
-  }
-
-  function scan(){
-    // get current connectivity status
+  $scope.scan = function(){
     Wifi.status().then(function(resp){
       if(resp.success == true){
         $scope.current = resp;
@@ -60,19 +60,57 @@ nClient.controller('WifiCtrl', function($scope, $state, Nonbox, Wifi) {
         $scope.current = {ssid:false};
       }
     });
-    // scan/return networks except 'non' ssid
     Wifi.scan().then(function(resp){
-      // console.log(resp)
       if(resp.data && resp.data.success == true) {
         $scope.networks = resp.data.networks.filter(function(network){
-          return network.ssid !== 'non';
+          return network.ssid !== 'nonbox';
         });
       } else if(resp.data) {
         $scope.error = resp.data.msg;
       } else {
-        $state.go('device');
+        // $state.go('device');
       }
-    }).catch(function(err){ $state.go('device'); });
+    }).catch(function(err){ $state.go('device');})
+    .finally(function(){
+      $scope.$broadcast('scroll.refreshComplete');
+    });
   }
-  scan();
+
+  function passwordDialog(action){
+    var popup = document.getElementById('passwordDialog');
+    if(popup != null){
+      if(action === 'open' ) popup.showModal();
+      if(action === 'close') popup.close();
+    } else {
+      if(action === 'close'){
+        return
+      } else {
+        $injector.get('$ionicPopup').show({
+          template: '<input type="password" ng-model="currentAp.password">',
+          title: 'Connect to '+$scope.currentAp.ssid,
+          scope: $scope,
+          buttons: [
+            { text: 'Cancel' },
+            {
+              text: 'Connect',
+              type: 'button-dark',
+              onTap: function(e) {
+                if (!$scope.currentAp.password) {
+                  e.preventDefault();
+                } else {
+                  $scope.secureConnect($scope.currentAp);
+                }
+              }
+            }
+          ]
+        });
+      }
+    }
+  }
+
+  $scope.$on('$ionicView.enter', function() {
+    $scope.scan();
+  });
+
+  $scope.scan();
 });

@@ -1,7 +1,9 @@
 nClient.service('Wifi', function($rootScope, $http){
   return {
     scan: function(){
-      return $http.get($rootScope.nbServer+'scan').then(function(resp){
+      return $http.get($rootScope.nbServer+'scan',
+        { timeout:5000 }
+      ).then(function(resp){
         return resp;
       }).catch(function(err){
         return err;
@@ -16,7 +18,9 @@ nClient.service('Wifi', function($rootScope, $http){
       });
     },
     status: function(){
-      return $http.get($rootScope.nbServer+'status').then(function(resp){
+      return $http.get($rootScope.nbServer+'status',
+        { timeout:5000 }
+      ).then(function(resp){
         $rootScope.online = resp.data.success;
         return resp.data;
       }).catch(function(err){
@@ -33,7 +37,9 @@ nClient.service('Wifi', function($rootScope, $http){
       });
     },
     reset: function(){
-      return $http.delete($rootScope.nbServer+'reset').then(function(resp){
+      return $http.delete($rootScope.nbServer+'reset',
+        { timeout:7000 }
+      ).then(function(resp){
         $rootScope.online = resp.data.success;
         return resp.data;
       }).catch(function(err){

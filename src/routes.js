@@ -2,21 +2,21 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   $stateProvider
   .state('device', {
     url:'/',
-    templateUrl: 'app/views/device.html',
+    templateUrl: templateDir+'/device.html',
     controller: 'DeviceCtrl'
   })
   .state('networks', {
     url:'/networks',
-    templateUrl: 'app/views/networks.html',
+    templateUrl: templateDir+'/networks.html',
     controller: 'WifiCtrl'
   })
   .state('quickstart', {
     url:'/quickstart',
-    templateUrl: 'app/views/quickstart.html'
+    templateUrl: templateDir+'/quickstart.html'
   })
   .state('tutorials', {
     url:'/tutorials',
-    templateUrl: 'app/views/tutorials.html',
+    templateUrl: templateDir+'/tutorials.html',
     controller: function($scope, Tutorials){
       $scope.showMode = false;
       $scope.tutorials = Tutorials;
@@ -28,21 +28,21 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   })
   .state('support', {
     url:'/support',
-    templateUrl: 'app/views/support.html'
+    templateUrl: templateDir+'/support.html'
   })
   .state('bugs', {
     url:'/bugs',
-    templateUrl: 'app/views/bugreport.html',
+    templateUrl: templateDir+'/bugreport.html',
     controller: 'ReportsCtrl'
   })
   .state('suggestions', {
     url:'/suggestions',
-    templateUrl: 'app/views/suggestion.html',
+    templateUrl: templateDir+'/suggestion.html',
     controller: 'ReportsCtrl'
   })
   .state('pr', {
     url:'/pr',
-    templateUrl: 'app/views/pr.html'
+    templateUrl: templateDir+'/pr.html'
   });
   // catchall route
   $urlRouterProvider.otherwise('/');

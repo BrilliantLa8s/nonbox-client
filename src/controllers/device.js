@@ -6,8 +6,10 @@ nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
       $rootScope.nbConnected = status;
     }).catch(function(status){
       $rootScope.nbConnected = status;
+    }).finally(function(){
+      Wifi.status();
+      $scope.$broadcast('scroll.refreshComplete');
     });
-    Wifi.status();
   }
   $scope.check();
 });

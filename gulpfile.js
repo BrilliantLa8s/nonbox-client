@@ -3,6 +3,7 @@ var gulp   = require('gulp'),
     insert = require('gulp-insert'),
     uglify = require('gulp-uglify'),
     gutil = require('gulp-util'),
+    run = require('run-sequence'),
     strip = require('gulp-strip-comments'),
     ngAnnotate = require('gulp-ng-annotate');
 
@@ -31,4 +32,12 @@ gulp.task('build:prod', function() {
 });
 
 gulp.task('build', ['build:dev', 'build:prod'], function() {
+});
+
+gulp.task('watch', function() {
+  gulp.watch('./src/**/*', ['build']);
+});
+
+gulp.task('default', function(cb) {
+  run('build', 'watch', cb);
 });
