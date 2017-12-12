@@ -19,7 +19,9 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
     templateUrl: templateDir+'/tutorials.html',
     controller: function($scope, Tutorials){
       $scope.showMode = false;
-      $scope.tutorials = Tutorials;
+      Tutorials.then(function(tutorials){
+        $scope.tutorials = tutorials;
+      });
       $scope.show = function(tutorial){
         $scope.showMode = true;
         $scope.tutorial = tutorial;

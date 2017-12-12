@@ -7,8 +7,8 @@ nClient.run(function($rootScope){
   $rootScope.nbConnected = false;
 
   // nonbox router and api endpoints
-  $rootScope.nbServer = 'http://192.168.42.1:8080/'
-  $rootScope.nbApi    = 'https://nonbox.co/'
+  $rootScope.nbServer = 'http://nonbox/'
+  $rootScope.nbApi    = 'https://api.nonbox.io/v1/companion/'
 
   $rootScope.$on('loading:start', function (){
     $rootScope.isLoading = true;

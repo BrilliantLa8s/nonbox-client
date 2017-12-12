@@ -9,8 +9,9 @@ nClient.run(function($rootScope){
   $rootScope.nbConnected = false;
 
   // nonbox router and api endpoints
-  $rootScope.nbServer = 'http://192.168.42.1:8080/'
-  $rootScope.nbApi    = 'https://nonbox.co/'
+  $rootScope.nbServer = 'http://localhost:3000/'
+  // $rootScope.nbServer = 'http://192.168.61.1/'
+  $rootScope.nbApi    = 'http://localhost:9000/v1/companion/'
 
   $rootScope.$on('loading:start', function (){
     $rootScope.isLoading = true;
@@ -69,7 +70,9 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
     templateUrl: templateDir+'/tutorials.html',
     controller: function($scope, Tutorials){
       $scope.showMode = false;
-      $scope.tutorials = Tutorials;
+      Tutorials.then(function(tutorials){
+        $scope.tutorials = tutorials;
+      });
       $scope.show = function(tutorial){
         $scope.showMode = true;
         $scope.tutorial = tutorial;
@@ -99,17 +102,34 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
 });
 
 nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
-  $scope.assigned = {total: 10, remaining: 2, devices:[{}]}
   // check if nonbox is connected
   $scope.check = function(){
-    Nonbox.check().then(function(status){
-      $rootScope.nbConnected = status;
+    Nonbox.check().then(function(connected){
+      $rootScope.nbConnected = connected;
+      if(connected) {
+        Nonbox.info().then(function(info){
+          $scope.info = info;
+          Wifi.status();
+        });
+      } else {
+        $scope.$broadcast('nonbox.notfound');
+      }
     }).catch(function(status){
       $rootScope.nbConnected = status;
+      $scope.$broadcast('nonbox.notfound');
     }).finally(function(){
-      Wifi.status();
       $scope.$broadcast('scroll.refreshComplete');
     });
+  }
+  // kick device of nonbox network
+  $scope.removeDevice = function(device, idx){
+    $scope.$broadcast('device:remove');
+    Nonbox.removeDevice(device).then(function(removed){
+      if(removed) {
+        $scope.info.devices.splice(idx, 1);
+        $scope.$broadcast('device:removed');
+      }
+    })
   }
   $scope.check();
 });
@@ -221,11 +241,9 @@ nClient.controller('WifiCtrl', function($injector, $scope, $state, $timeout, Non
 
   function passwordDialog(action){
     var popup = document.getElementById('passwordDialog');
-    console.log(popup)
     if(popup != null){
       if(action === 'open' ) popup.showModal();
       if(action === 'close') popup.close();
-      console.log('here')
     } else {
       if(action === 'close'){
         return
@@ -263,7 +281,8 @@ nClient.controller('WifiCtrl', function($injector, $scope, $state, $timeout, Non
 nClient.service('Nonbox', function($rootScope, $http){
   return {
     check: function(){
-      return $http.get($rootScope.nbServer).then(function(resp){
+      return $http.get($rootScope.nbServer, { timeout:7000 })
+      .then(function(resp){
         if(resp.status === 200 && resp.data === 'nonbox server'){
           return true;
         } else { return false; }
@@ -272,9 +291,20 @@ nClient.service('Nonbox', function($rootScope, $http){
       });
     },
     info: function(){
-      return $http.post($rootScope.nbServer+'info')
+      return $http.get($rootScope.nbServer+'info')
       .then(function(resp){
-        return resp;
+        if(resp.status === 200) return resp.data;
+        return;
+      }).catch(function(err){
+        return err;
+      });
+    },
+    removeDevice: function(device){
+      return $http.post($rootScope.nbServer+'device', device)
+      .then(function(resp){
+        console.log(resp)
+        if(resp.status === 200) return resp.data;
+        return;
       }).catch(function(err){
         return err;
       });
@@ -296,97 +326,14 @@ nClient.service('Report', function($rootScope, $http){
   }
 })
 
-nClient.service('Tutorials', function(){
-  return [
-    {
-      title: 'Test Tutorial One',
-      description: 'Test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description',
-      icon: 'key',
-      steps: [
-        {
-          order:1,
-          text:'First you have to do this',
-          image: ''
-        },
-        {
-          order:2,
-          text:'Then you have to do that',
-          image:''
-        },
-        {
-          order:3,
-          text:'And there you have it folks. Power on and rock the house',
-          image:''
-        }
-      ]
-    },
-    {
-      title: 'Test Tutorial Two',
-      description: 'Test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description',
-      icon: 'lamp',
-      steps: [
-        {
-          order:1,
-          text:'First you have to do this',
-          image: ''
-        },
-        {
-          order:2,
-          text:'Then you have to do that',
-          image:''
-        },
-        {
-          order:3,
-          text:'And there you have it folks. Power on and rock the house',
-          image:''
-        }
-      ]
-    },
-    {
-      title: 'Test Tutorial Three',
-      description: 'Test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description',
-      icon: 'tools',
-      steps: [
-        {
-          order:1,
-          text:'First you have to do this',
-          image: ''
-        },
-        {
-          order:2,
-          text:'Then you have to do that',
-          image:''
-        },
-        {
-          order:3,
-          text:'And there you have it folks. Power on and rock the house',
-          image:''
-        }
-      ]
-    },
-    {
-      title: 'Test Tutorial Four',
-      description: 'Test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description test turial one description',
-      icon: 'cog',
-      steps: [
-        {
-          order:1,
-          text:'First you have to do this',
-          image: ''
-        },
-        {
-          order:2,
-          text:'Then you have to do that',
-          image:''
-        },
-        {
-          order:3,
-          text:'And there you have it folks. Power on and rock the house',
-          image:'cog'
-        }
-      ]
-    }
-  ]
+nClient.service('Tutorials', function($http, $rootScope){
+  return $http.get($rootScope.nbApi+'tutorials').then(function(resp){
+    console.log(resp)
+    if(resp.status === 200) return resp.data;
+    return resp.data;
+  }).catch(function(err){
+    return;
+  });
 });
 
 nClient.service('Wifi', function($rootScope, $http){
