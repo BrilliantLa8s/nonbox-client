@@ -1,7 +1,12 @@
 nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   $stateProvider
-  .state('device', {
+  .state('devices', {
     url:'/',
+    templateUrl: templateDir+'/devices.html',
+    controller: 'DevicesCtrl'
+  })
+  .state('device', {
+    url:'/device',
     templateUrl: templateDir+'/device.html',
     controller: 'DeviceCtrl'
   })
