@@ -1,4 +1,5 @@
-nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
+nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi, $stateParams) {
+  console.log($stateParams.serial)
   // check if nonbox is connected
   $scope.check = function(){
     Nonbox.check().then(function(connected){

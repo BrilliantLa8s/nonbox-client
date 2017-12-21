@@ -6,7 +6,7 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
     controller: 'DevicesCtrl'
   })
   .state('device', {
-    url:'/device',
+    url:'/device/:serial',
     templateUrl: templateDir+'/device.html',
     controller: 'DeviceCtrl'
   })

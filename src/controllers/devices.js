@@ -1,6 +1,7 @@
 nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, $injector){
   $scope.devices = [];
   $scope.device  = {};
+  var confirmRemove;
 
   $scope.preventSpace = function(e) {
     if(e.keyCode === 32) e.preventDefault();
@@ -16,8 +17,22 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
   });
 
   $scope.removeDevice = function(device) {
-    Device.remove(device);
-    listDevices();
+    confirmRemove = $injector.get('$ionicPopup').confirm({
+      title: 'Remove Device',
+      template: 'Are you sure you want to remove this device?',
+      cancelText: 'Cancel',
+      cancelType: 'button-default',
+      okText: 'Remove',
+      okType: 'button-assertive'
+    });
+    confirmRemove.then(function(res) {
+      if(res) {
+        Device.remove(device);
+        listDevices();
+      } else {
+        // dont remove
+      }
+    });
   };
 
   $scope.saveDevice = function(device) {
@@ -26,6 +41,12 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
       $scope.modal.hide();
     })
 	};
+
+  $scope.setCurrent = function(device) {
+    Device.setCurrent(device).then(function(resp){
+      console.log(JSON.stringify(resp))
+    })
+  }
 
   $scope.listDevices = function(){
     listDevices()
@@ -38,4 +59,6 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
       $scope.$broadcast('scroll.refreshComplete');
     })
   }
+
+  listDevices();
 })

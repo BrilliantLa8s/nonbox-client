@@ -57,7 +57,7 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
     controller: 'DevicesCtrl'
   })
   .state('device', {
-    url:'/device',
+    url:'/device/:serial',
     templateUrl: templateDir+'/device.html',
     controller: 'DeviceCtrl'
   })
@@ -106,117 +106,8 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   $urlRouterProvider.otherwise('/');
 });
 
-nClient.service('Nonbox', function($rootScope, $http){
-  return {
-    check: function(){
-      return $http.get($rootScope.nbServer, { timeout:7000 })
-      .then(function(resp){
-        if(resp.status === 200 && resp.data === 'nonbox server'){
-          return true;
-        } else { return false; }
-      }).catch(function(err){
-        return false;
-      });
-    },
-    info: function(){
-      return $http.get($rootScope.nbServer+'info')
-      .then(function(resp){
-        if(resp.status === 200) return resp.data;
-        return;
-      }).catch(function(err){
-        return err;
-      });
-    },
-    removeDevice: function(device){
-      return $http.post($rootScope.nbServer+'device', device)
-      .then(function(resp){
-        console.log(resp)
-        if(resp.status === 200) return resp.data;
-        return;
-      }).catch(function(err){
-        return err;
-      });
-    }
-  }
-})
-
-
-nClient.service('Report', function($rootScope, $http){
-  return {
-    submit: function(body, path){
-      return $http.post($rootScope.nbApi+'report/'+path, body)
-      .then(function(resp){ return resp;}, function (err) {
-        return err;
-      }).catch(function(err){
-        return err;
-      });
-    }
-  }
-})
-
-nClient.service('Tutorials', function($http, $rootScope){
-  return $http.get($rootScope.nbApi+'tutorials').then(function(resp){
-    console.log(resp)
-    if(resp.status === 200) return resp.data;
-    return resp.data;
-  }).catch(function(err){
-    return;
-  });
-});
-
-nClient.service('Wifi', function($rootScope, $http){
-  return {
-    scan: function(){
-      return $http.get($rootScope.nbServer+'scan',
-        { timeout:5000 }
-      ).then(function(resp){
-        return resp;
-      }).catch(function(err){
-        return err;
-      });
-    },
-    connect: function(ap){
-      return $http.post($rootScope.nbServer+'connect', {ap:ap})
-      .then(function(resp){
-        return resp;
-      }).catch(function(err){
-        return err;
-      });
-    },
-    status: function(){
-      return $http.get($rootScope.nbServer+'status',
-        { timeout:5000 }
-      ).then(function(resp){
-        $rootScope.online = resp.data.success;
-        return resp.data;
-      }).catch(function(err){
-        $rootScope.online = false;
-        return err;
-      });
-    },
-    disconnect: function(){
-      return $http.delete($rootScope.nbServer+'disconnect').then(function(resp){
-        $rootScope.online = false;
-        return resp;
-      }).catch(function(err){
-        return err;
-      });
-    },
-    reset: function(){
-      return $http.delete($rootScope.nbServer+'reset',
-        { timeout:7000 }
-      ).then(function(resp){
-        $rootScope.online = resp.data.success;
-        return resp.data;
-      }).catch(function(err){
-        $rootScope.online = false;
-        return err;
-      });
-    }
-  }
-})
-
-nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
+nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi, $stateParams) {
+  console.log($stateParams.serial)
   // check if nonbox is connected
   $scope.check = function(){
     Nonbox.check().then(function(connected){
@@ -252,6 +143,7 @@ nClient.controller('DeviceCtrl', function($scope, $rootScope, Nonbox, Wifi) {
 nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, $injector){
   $scope.devices = [];
   $scope.device  = {};
+  var confirmRemove;
 
   $scope.preventSpace = function(e) {
     if(e.keyCode === 32) e.preventDefault();
@@ -267,8 +159,22 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
   });
 
   $scope.removeDevice = function(device) {
-    Device.remove(device);
-    listDevices();
+    confirmRemove = $injector.get('$ionicPopup').confirm({
+      title: 'Remove Device',
+      template: 'Are you sure you want to remove this device?',
+      cancelText: 'Cancel',
+      cancelType: 'button-default',
+      okText: 'Remove',
+      okType: 'button-assertive'
+    });
+    confirmRemove.then(function(res) {
+      if(res) {
+        Device.remove(device);
+        listDevices();
+      } else {
+        // dont remove
+      }
+    });
   };
 
   $scope.saveDevice = function(device) {
@@ -277,6 +183,12 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
       $scope.modal.hide();
     })
 	};
+
+  $scope.setCurrent = function(device) {
+    Device.setCurrent(device).then(function(resp){
+      console.log(JSON.stringify(resp))
+    })
+  }
 
   $scope.listDevices = function(){
     listDevices()
@@ -289,6 +201,8 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
       $scope.$broadcast('scroll.refreshComplete');
     })
   }
+
+  listDevices();
 })
 
 nClient.controller('ReportsCtrl', function($state, $scope, Report){
@@ -434,5 +348,115 @@ nClient.controller('WifiCtrl', function($injector, $scope, $state, $timeout, Non
 
   $scope.scan();
 });
+
+nClient.service('Nonbox', function($rootScope, $http){
+  return {
+    check: function(){
+      return $http.get($rootScope.nbServer, { timeout:7000 })
+      .then(function(resp){
+        if(resp.status === 200 && resp.data === 'nonbox server'){
+          return true;
+        } else { return false; }
+      }).catch(function(err){
+        return false;
+      });
+    },
+    info: function(){
+      return $http.get($rootScope.nbServer+'info')
+      .then(function(resp){
+        if(resp.status === 200) return resp.data;
+        return;
+      }).catch(function(err){
+        return err;
+      });
+    },
+    removeDevice: function(device){
+      return $http.post($rootScope.nbServer+'device', device)
+      .then(function(resp){
+        console.log(resp)
+        if(resp.status === 200) return resp.data;
+        return;
+      }).catch(function(err){
+        return err;
+      });
+    }
+  }
+})
+
+
+nClient.service('Report', function($rootScope, $http){
+  return {
+    submit: function(body, path){
+      return $http.post($rootScope.nbApi+'report/'+path, body)
+      .then(function(resp){ return resp;}, function (err) {
+        return err;
+      }).catch(function(err){
+        return err;
+      });
+    }
+  }
+})
+
+nClient.service('Tutorials', function($http, $rootScope){
+  return $http.get($rootScope.nbApi+'tutorials').then(function(resp){
+    console.log(resp)
+    if(resp.status === 200) return resp.data;
+    return resp.data;
+  }).catch(function(err){
+    return;
+  });
+});
+
+nClient.service('Wifi', function($rootScope, $http){
+  return {
+    scan: function(){
+      return $http.get($rootScope.nbServer+'scan',
+        { timeout:5000 }
+      ).then(function(resp){
+        return resp;
+      }).catch(function(err){
+        return err;
+      });
+    },
+    connect: function(ap){
+      return $http.post($rootScope.nbServer+'connect', {ap:ap})
+      .then(function(resp){
+        return resp;
+      }).catch(function(err){
+        return err;
+      });
+    },
+    status: function(){
+      return $http.get($rootScope.nbServer+'status',
+        { timeout:5000 }
+      ).then(function(resp){
+        $rootScope.online = resp.data.success;
+        return resp.data;
+      }).catch(function(err){
+        $rootScope.online = false;
+        return err;
+      });
+    },
+    disconnect: function(){
+      return $http.delete($rootScope.nbServer+'disconnect').then(function(resp){
+        $rootScope.online = false;
+        return resp;
+      }).catch(function(err){
+        return err;
+      });
+    },
+    reset: function(){
+      return $http.delete($rootScope.nbServer+'reset',
+        { timeout:7000 }
+      ).then(function(resp){
+        $rootScope.online = resp.data.success;
+        return resp.data;
+      }).catch(function(err){
+        $rootScope.online = false;
+        return err;
+      });
+    }
+  }
+})
 
 })();
