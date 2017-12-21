@@ -1,6 +1,6 @@
 {
   "name": "nonbox-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shared functions for nonbox client apps",
   "main": "index.js",
   "license": "MIT",

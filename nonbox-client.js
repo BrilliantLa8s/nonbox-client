@@ -35,6 +35,11 @@ nClient.config(function($sceProvider, $httpProvider){
     return {
       request: function(config) {
         $rootScope.$broadcast('loading:start');
+        config.headers = config.headers || {};
+        // set device serial as a header
+        if ($rootScope.currentDevice) {
+          config.headers.serial = $rootScope.currentDevice.serial;
+        }
         return config || $q.when(config);
       },
       response: function (response) {
@@ -186,7 +191,7 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
 
   $scope.setCurrent = function(device) {
     Device.setCurrent(device).then(function(resp){
-      console.log(JSON.stringify(resp))
+      // console.log(JSON.stringify(resp))
     })
   }
 

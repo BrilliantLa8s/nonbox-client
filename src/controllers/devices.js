@@ -44,7 +44,7 @@ nClient.controller('DevicesCtrl', function($scope, $window, $rootScope, Device, 
 
   $scope.setCurrent = function(device) {
     Device.setCurrent(device).then(function(resp){
-      console.log(JSON.stringify(resp))
+      // console.log(JSON.stringify(resp))
     })
   }
 
