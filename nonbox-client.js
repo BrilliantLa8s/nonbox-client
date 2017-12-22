@@ -9,8 +9,7 @@ nClient.run(function($rootScope){
   $rootScope.nbConnected = false;
 
   // nonbox router and api endpoints
-  $rootScope.nbServer = 'http://localhost:3000/';
-  // $rootScope.nbServer = 'http://nonbox/';
+  $rootScope.nbServer = 'http://192.168.42.1:8080/';
   $rootScope.nbApi    = 'https://api.nonbox.us/v1/companion/';
 
   $rootScope.$on('loading:start', function (){
@@ -54,7 +53,10 @@ nClient.config(function($sceProvider, $httpProvider){
   });
 });
 
-nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
+nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider, $sceDelegateProvider){
+  $sceDelegateProvider.resourceUrlWhitelist([
+    'self', '*://nonbox.co/**', '*://192.168.42.1:8080/**'
+  ]);
   $stateProvider
   .state('devices', {
     url:'/',
@@ -78,16 +80,7 @@ nClient.config(function($locationProvider, $stateProvider, $urlRouterProvider){
   .state('tutorials', {
     url:'/tutorials',
     templateUrl: templateDir+'/tutorials.html',
-    controller: function($scope, Tutorials){
-      $scope.showMode = false;
-      Tutorials.then(function(tutorials){
-        $scope.tutorials = tutorials;
-      });
-      $scope.show = function(tutorial){
-        $scope.showMode = true;
-        $scope.tutorial = tutorial;
-      }
-    }
+    controller: 'TutorialsCtrl'
   })
   .state('support', {
     url:'/support',
@@ -234,6 +227,27 @@ nClient.controller('ReportsCtrl', function($state, $scope, Report){
       }
     });
     $scope.$apply;
+  }
+})
+
+nClient.controller('TutorialsCtrl', function($scope, Tutorials){
+  $scope.showMode = false;
+
+  // for mobile app view enter
+  $scope.$on('$ionicView.enter', function(e) {
+    getTutorials();
+  });
+
+  getTutorials();
+
+  function getTutorials(){
+    Tutorials.then(function(tutorials){
+      $scope.tutorials = tutorials;
+    });
+    $scope.show = function(tutorial){
+      $scope.showMode = true;
+      $scope.tutorial = tutorial;
+    }
   }
 })
 
